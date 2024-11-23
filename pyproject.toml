@@ -28,5 +28,6 @@ Documentation = "https://mkupferman.github.io/dbxdriverack-python/"
 "dbxdriverack" = ["py.typed"]
 
 [project.optional-dependencies]
-dev = ["black", "mypy"]
+dev = ["black"]
+validate = ["mypy"]
 docs = ["sphinx", "sphinxcontrib-napoleon", "sphinx-rtd-theme"]

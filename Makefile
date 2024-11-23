@@ -12,7 +12,11 @@ docs:
 	sphinx-apidoc -f -o docs/src src/dbxdriverack; \
 	sphinx-build -M html docs/src docs/output
 
-build: clean venv docs
+validate:
+	source venv/bin/activate; \
+	python3 -m pip install --upgrade '.[validate]'
+
+build: clean venv docs validate
 	source venv/bin/activate; \
 	python3 -m pip install --upgrade pip; \
 	python3 -m pip install --upgrade build; \
@@ -20,7 +24,7 @@ build: clean venv docs
 	mypy . --strict --exclude=build/ --exclude=venv/ --exclude=tests/
 
 
-develop: venv
+develop: venv validate
 	source venv/bin/activate; \
 	python3 -m pip install --upgrade pip; \
 	python3 -m pip install --editable '.[dev]'
