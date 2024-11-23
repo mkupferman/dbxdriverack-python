@@ -1,0 +1,55 @@
+# Deploy documentation to GitHub Pages
+name: Deploy documentation
+on:
+  push:
+    branches: [main]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+          cache: "pip"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install sphinx sphinx-rtd-theme sphinxcontrib-napoleon
+      - name: Make module importable
+        run: |
+          python -m pip install .
+      - name: Convert docstrings to rst
+        id: docstrings
+        run: |
+          sphinx-apidoc -f -o docs/src src/dbxdriverack
+      - name: Build docs
+        if: steps.docstrings.outcome == 'success'
+        run: |
+          sphinx-build -M html docs/src docs/output
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./docs/output/html"
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

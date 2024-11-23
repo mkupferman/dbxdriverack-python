@@ -1,0 +1,12 @@
+{
+    "recommendations": [
+        "davidanson.vscode-markdownlint",
+        "lextudio.restructuredtext",
+        "tamasfe.even-better-toml",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black",
+        "njpwerner.autodocstring",
+        "redhat.vscode-yaml",
+    ]
+}
