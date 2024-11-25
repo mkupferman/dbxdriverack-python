@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.0.4
+
+* Bugfix release
+
 ## 0.0.3
 
 * `Added PA2.waitingForUser(isWaiting: bool)` method for calling script to
