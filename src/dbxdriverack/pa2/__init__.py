@@ -14,6 +14,7 @@ import shlex
 from typing import Type, Optional, Self, Any
 from collections.abc import Callable, Mapping, ItemsView
 from types import TracebackType
+import sys
 
 from tssplit import tssplit  # type: ignore
 
@@ -111,6 +112,8 @@ class PA2:
 
         self.threads: queue.Queue[threading.Thread] = queue.Queue()
 
+        self.isWaitingForUser: bool = False
+
         # list response tracking
         try:
             del self.listLock
@@ -164,7 +167,7 @@ class PA2:
             while not self.errors.empty():
                 errors_list.append(self.errors.get())
             for error in sorted(errors_list):
-                print(error)
+                print(error, file=sys.stderr)
 
     def __del__(self) -> None:
         self._dprint("Destructor called")
@@ -250,13 +253,30 @@ class PA2:
         self.disconnectLock = False
         self._dprint("Disconnected routine complete")
 
+    def _setDefaultTimeout(self) -> None:
+        """Sets network timeout to 110% the specified timeout to prevent
+        premature timeout exceptions in certain race conditions.
+        """
+        self.socket.settimeout(self.timeout * 1.1)
+
+    def waitingForUser(self, isWaiting: bool = False) -> None:
+        """Allow calling code to indicate that it is waiting for user input
+        and to prevent the timeout from being triggered.
+        """
+        if isWaiting:
+            self.isWaitingForUser = True
+            self.socket.settimeout(None)
+        else:
+            self._setDefaultTimeout()
+            self.isWaitingForUser = False
+
     def _openConnection(self) -> bool:
         if self._hasSocket():
             self._dprint("Socket already open, disconnecting")
             self._disconnect()
         self.socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # pad the timeout by 10% to prevent firing an exception before out timer
-        self.socket.settimeout(self.timeout * 1.1)
+        self._setDefaultTimeout()
+
         try:
             self.socket.connect((self.host, self.port))
             self.inputSocketFile = self.socket.makefile("r")
@@ -299,12 +319,17 @@ class PA2:
             if mode == "tcp":
                 try:
                     data = self.inputSocketFile.readline()
+                except socket.timeout:
+                    if self.isWaitingForUser:
+                        self.inputSocketFile = self.socket.makefile("r")
+                    else:
+                        break
                 except:
-                    self._dprint("Socket read error")
+                    self._dprint("Socket read error for readline")
                     break
                 else:
                     if data == "":
-                        self._dprint("Socket read error/EOF")
+                        self._dprint("Socket read error/EOF -- empty str for readline")
                         break
                     self.inputQueue.put(("NA", data))
             elif mode == "udp":
@@ -313,11 +338,11 @@ class PA2:
                     bdata, addr = self.socket.recvfrom(2048)
                     data = bdata.decode("utf-8")
                 except:
-                    self._dprint("Socket read error")
+                    self._dprint("Socket read error for recvfrom")
                     break
                 else:
                     if data == "":
-                        self._dprint("Socket read error/EOF")
+                        self._dprint("Socket read error/EOF -- empty str for recvfrom")
                         break
                     for line in data.splitlines():
                         self.inputQueue.put((addr, line))
