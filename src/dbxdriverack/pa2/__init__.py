@@ -257,7 +257,10 @@ class PA2:
         """Sets network timeout to 110% the specified timeout to prevent
         premature timeout exceptions in certain race conditions.
         """
-        self.socket.settimeout(self.timeout * 1.1)
+        try:
+            self.socket.settimeout(self.timeout * 1.1)
+        except:
+            pass
 
     def waitingForUser(self, isWaiting: bool = False) -> None:
         """Allow calling code to indicate that it is waiting for user input
@@ -265,7 +268,10 @@ class PA2:
         """
         if isWaiting:
             self.isWaitingForUser = True
-            self.socket.settimeout(None)
+            try:
+                self.socket.settimeout(None)
+            except:
+                pass
         else:
             self._setDefaultTimeout()
             self.isWaitingForUser = False
